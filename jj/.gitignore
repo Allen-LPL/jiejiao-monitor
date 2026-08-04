@@ -1,0 +1,23 @@
+# 密钥
+.env
+
+# 编译产物
+jj-linux-amd64
+jj-linux-arm64
+jj-darwin-amd64
+jj-darwin-arm64
+jj-bin
+jiejiao
+
+# 运行时数据/日志
+stocks.db
+*.log
+*.bak
+*.bak.*
+
+# 系统/临时
+.DS_Store
+*.png
+
+# 抓包/调试数据(含鉴权token与打卡PII，勿入库)
+docs/PCAPdroid_*
