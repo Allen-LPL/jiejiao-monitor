@@ -71,3 +71,15 @@ launchctl list | grep jj ; tail -f /root/jj/jj.log
 # 卸载
 bash deploy/install.sh uninstall
 ```
+
+## 安全升级已有节点
+
+`install.sh` 为避免覆盖生产差异，会保留已有 `config.json`。当升级同时修改了接口版本或请求头时，应显式同步配置与 `.env`。推荐发布顺序：
+
+1. 上传为 `.new` 文件；
+2. 校验二进制 SHA-256、校验 JSON、确认 `.env` 权限为 `0600`；
+3. 将现有二进制、配置和 `.env` 备份到带时间戳的 release 目录；
+4. 原子替换文件并 `systemctl restart jj`；
+5. 请求 `/health` 并查看启动日志。
+
+不要把 `.env`、pcapng、接口响应、数据库或日志加入发布包或 Git。

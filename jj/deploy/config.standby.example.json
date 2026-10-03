@@ -1,13 +1,15 @@
 {
-  "attendance_api": "http://yhq.sifa365.cn/api/mob/signIn/onlineSigns/listByDay?versionCode=110700&versionName=11.7.0",
+  "attendance_api": "http://yhq.sifa365.cn/api/mob/signIn/onlineSigns/listByDay?versionCode=120900&versionName=12.9.0",
   "auth_token": "${JJ_AUTH_TOKEN}",
   "attendance_headers": {
     "user-agent": "Dart/2.10 (dart:io)",
-    "device-platform": "Android",
+    "device-platform": "iOS",
     "device-sn": "${JJ_DEVICE_SN}",
-    "app-version-name": "11.7.0",
-    "app-version-code": "110700",
-    "referer": "http://yhq.sifa365.cn"
+    "app-version-name": "12.9.0",
+    "app-version-code": "120900",
+    "referer": "http://yhq.sifa365.cn/api/",
+    "device-name": "iPhone14,7",
+    "app-name": "BK-USER"
   },
   "api_key": "${JJ_API_KEY}",
   "http_port": ":18082",

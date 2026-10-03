@@ -1,6 +1,48 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
+
+// TestSignResponseUnmarshal 校验成功与登录失效响应都能进入业务码判断。
+// 生产故障回归：401 的 data 是 []string，不能因此阻断 code/msg 解析。
+func TestSignResponseUnmarshal(t *testing.T) {
+	cases := []struct {
+		name       string
+		payload    string
+		wantCode   int
+		wantMsg    string
+		wantRecord int
+	}{
+		{
+			name:       "成功响应保留签到记录",
+			payload:    `{"code":200,"msg":"操作成功","data":[{"pkId":1,"createTime":"2026-10-03 08:47:09","isValid":"1"}]}`,
+			wantCode:   200,
+			wantMsg:    "操作成功",
+			wantRecord: 1,
+		},
+		{
+			name:       "登录失效字符串数组仍可解析业务码",
+			payload:    `{"msg":"无法访问系统资源，请您重新登录后再试","code":401,"data":["请求访问失败"]}`,
+			wantCode:   401,
+			wantMsg:    "无法访问系统资源，请您重新登录后再试",
+			wantRecord: 0,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			var got SignResponse
+			if err := json.Unmarshal([]byte(test.payload), &got); err != nil {
+				t.Fatalf("解析响应失败: %v", err)
+			}
+			if got.Code != test.wantCode || got.Msg != test.wantMsg || len(got.Data) != test.wantRecord {
+				t.Fatalf("解析结果=%+v，期望 code=%d msg=%q records=%d", got, test.wantCode, test.wantMsg, test.wantRecord)
+			}
+		})
+	}
+}
 
 // TestIsAuthExpired 校验登录态失效判定（决定是否发 token 过期告警）
 func TestIsAuthExpired(t *testing.T) {
@@ -9,11 +51,11 @@ func TestIsAuthExpired(t *testing.T) {
 		msg  string
 		want bool
 	}{
-		{200, "操作成功", false},                  // 正常
+		{200, "操作成功", false},              // 正常
 		{401, "无法访问系统资源，请您重新登录后再试", true}, // 新后端(RuoYi)
-		{105, "账号异常，请重新登录", true},           // 旧后端
-		{500, "系统内部错误", false},               // 其它错误不算登录态失效
-		{0, "请登录后再操作", true},                 // 仅凭关键字兜底
+		{105, "账号异常，请重新登录", true},         // 旧后端
+		{500, "系统内部错误", false},            // 其它错误不算登录态失效
+		{0, "请登录后再操作", true},              // 仅凭关键字兜底
 	}
 	for _, c := range cases {
 		if got := isAuthExpired(c.code, c.msg); got != c.want {

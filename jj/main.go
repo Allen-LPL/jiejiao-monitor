@@ -23,16 +23,16 @@ import (
 
 // Config 应用配置
 type Config struct {
-	AttendanceAPI     string            `json:"attendance_api"`
-	AuthToken         string            `json:"auth_token"`
-	AttendanceHeaders map[string]string `json:"attendance_headers"` // 签到接口自定义请求头(device-sn/app-version-*/user-agent 等)
-	APIKey            string            `json:"api_key"`
-	HTTPPort      string             `json:"http_port"`
-	Notifiers     []NotifierConfig   `json:"notifiers"`
-	TimeSlots     []TimeSlotConfig   `json:"time_slots"`
-	Escalation    EscalationConfig   `json:"escalation"`
-	StockMonitor  StockMonitorConfig `json:"stock_monitor"`
-	Cluster       ClusterConfig      `json:"cluster"`
+	AttendanceAPI     string             `json:"attendance_api"`
+	AuthToken         string             `json:"auth_token"`
+	AttendanceHeaders map[string]string  `json:"attendance_headers"` // 签到接口自定义请求头(device-sn/app-version-*/user-agent 等)
+	APIKey            string             `json:"api_key"`
+	HTTPPort          string             `json:"http_port"`
+	Notifiers         []NotifierConfig   `json:"notifiers"`
+	TimeSlots         []TimeSlotConfig   `json:"time_slots"`
+	Escalation        EscalationConfig   `json:"escalation"`
+	StockMonitor      StockMonitorConfig `json:"stock_monitor"`
+	Cluster           ClusterConfig      `json:"cluster"`
 }
 
 // EscalationConfig 打卡提醒升级策略（距时段开始的分钟数）
@@ -57,8 +57,8 @@ type NotifierConfig struct {
 	Email           string          `json:"email,omitempty"`
 	Apps            []FeishuAppCred `json:"apps,omitempty"`               // 多应用轮换（额度分摊），优先于平铺的 app_id/app_secret
 	PhoneMaxPerSlot int             `json:"phone_max_per_slot,omitempty"` // 每时段每天最多电话次数，默认 1
-	BackupMobile    string          `json:"backup_mobile,omitempty"`  // 备用联系人手机号（须已加入某个应用所在团队）
-	BackupMobiles   []string        `json:"backup_mobiles,omitempty"` // 备用联系人优先级列表，按顺序尝试，成功一个即止
+	BackupMobile    string          `json:"backup_mobile,omitempty"`      // 备用联系人手机号（须已加入某个应用所在团队）
+	BackupMobiles   []string        `json:"backup_mobiles,omitempty"`     // 备用联系人优先级列表，按顺序尝试，成功一个即止
 	BackupOpenID    string          `json:"backup_open_id,omitempty"`
 }
 
@@ -545,6 +545,30 @@ type SignResponse struct {
 	Code int          `json:"code"`
 	Msg  string       `json:"msg"`
 	Data []SignRecord `json:"data"`
+}
+
+// UnmarshalJSON 兼容业务错误响应中 data 类型与成功响应不一致的情况。
+// 成功时 data 必须是签到记录数组；失败时保留 code/msg 供登录态失效判断。
+func (r *SignResponse) UnmarshalJSON(data []byte) error {
+	var wire struct {
+		Code int             `json:"code"`
+		Msg  string          `json:"msg"`
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+
+	r.Code = wire.Code
+	r.Msg = wire.Msg
+	r.Data = nil
+	if wire.Code != 200 || len(wire.Data) == 0 || string(wire.Data) == "null" {
+		return nil
+	}
+	if err := json.Unmarshal(wire.Data, &r.Data); err != nil {
+		return fmt.Errorf("解析签到记录失败: %w", err)
+	}
+	return nil
 }
 
 // SignRecord 单条签到记录（data 为当日实际发生的签到，而非预期时段）
